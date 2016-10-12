@@ -152,6 +152,7 @@ struct MachineState {
     bool igd_gfx_passthru;
     char *firmware;
     bool iommu;
+    bool atlas;
     bool suppress_vmdesc;
     bool enforce_config_section;
 

@@ -177,6 +177,8 @@ dummy := $(call unnest-vars,.., \
                crypto-aes-obj-y \
                qom-obj-y \
                io-obj-y \
+               atlas-obj-y \
+			   atlas-obj-m \
                common-obj-y \
                common-obj-m)
 target-obj-y := $(target-obj-y-save)
@@ -192,7 +194,7 @@ $(QEMU_PROG_BUILD): config-devices.mak
 
 # build either PROG or PROGW
 $(QEMU_PROG_BUILD): $(all-obj-y) ../libqemuutil.a ../libqemustub.a
-	$(call LINK, $(filter-out %.mak, $^))
+	$(call LINK, $(filter-out %.mak, $^)) ../atlas-cosimu.so
 ifdef CONFIG_DARWIN
 	$(call quiet-command,Rez -append $(SRC_PATH)/pc-bios/qemu.rsrc -o $@,"  REZ   $(TARGET_DIR)$@")
 	$(call quiet-command,SetFile -a C $@,"  SETFILE $(TARGET_DIR)$@")

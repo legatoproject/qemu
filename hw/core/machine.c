@@ -329,6 +329,20 @@ static bool machine_get_enforce_config_section(Object *obj, Error **errp)
     return ms->enforce_config_section;
 }
 
+static bool machine_get_atlas(Object *obj, Error **errp)
+{
+    MachineState *ms = MACHINE(obj);
+
+    return ms->atlas;
+}
+
+static void machine_set_atlas(Object *obj, bool value, Error **errp)
+{
+    MachineState *ms = MACHINE(obj);
+
+    ms->atlas = value;
+}
+
 static int error_on_sysbus_device(SysBusDevice *sbdev, void *opaque)
 {
     error_report("Option '-device %s' cannot be handled by this machine",
@@ -475,6 +489,9 @@ static void machine_initfn(Object *obj)
     object_property_add_bool(obj, "iommu",
                              machine_get_iommu,
                              machine_set_iommu, NULL);
+    object_property_add_bool(obj, "atlas",
+                             machine_get_atlas,
+                             machine_set_atlas, NULL);
     object_property_set_description(obj, "iommu",
                                     "Set on/off to enable/disable Intel IOMMU (VT-d)",
                                     NULL);

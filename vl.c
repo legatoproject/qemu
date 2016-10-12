@@ -121,6 +121,10 @@ int main(int argc, char **argv)
 #include "qapi/qmp/qerror.h"
 #include "sysemu/iothread.h"
 
+// ATLAS
+#include "atlas/qemu_atlas.h"
+// ATLAS END
+
 #define MAX_VIRTIO_CONSOLES 1
 #define MAX_SCLP_CONSOLES 1
 
@@ -2960,7 +2964,23 @@ static void set_memory_options(uint64_t *ram_slots, ram_addr_t *maxram_size,
     loc_pop(&loc);
 }
 
-int main(int argc, char **argv, char **envp)
+void exec_main_loop (bool wait);
+void exec_main_loop (bool wait)
+{
+	if (wait) {
+		main_loop();
+		bdrv_close_all();
+		pause_all_vcpus();
+		res_free();
+	#ifdef CONFIG_TPM
+		tpm_cleanup();
+	#endif
+	}
+}
+
+// ATLAS
+int main_qemu(int argc, char **argv, char **envp)
+// ATLAS END
 {
     int i;
     int snapshot, linux_boot;
@@ -4026,6 +4046,12 @@ int main(int argc, char **argv, char **envp)
                     exit(1);
                 }
                 break;
+	    /*ATLAS++*/
+            case QEMU_OPTION_atlas:
+                olist = qemu_find_opts("machine");
+                qemu_opts_parse_noisily(olist, "atlas=on", false);
+                break;
+	    /*END ATLAS*/
             default:
                 os_parse_cmd_args(popt->index, optarg);
             }
@@ -4211,25 +4237,39 @@ int main(int argc, char **argv, char **envp)
 #endif
     }
 
+    /*ATLAS ++*/
+    if ( qemu_opt_get_bool(qemu_get_machine_opts(), "atlas", false ) ) {
+    	add_device_config(DEV_SERIAL, "atlas");
+    }
+    /*END ATLAS */
+
     if (display_type == DT_NOGRAPHIC) {
-        if (default_parallel)
-            add_device_config(DEV_PARALLEL, "null");
-        if (default_serial && default_monitor) {
-            add_device_config(DEV_SERIAL, "mon:stdio");
-        } else if (default_virtcon && default_monitor) {
-            add_device_config(DEV_VIRTCON, "mon:stdio");
-        } else if (default_sclp && default_monitor) {
-            add_device_config(DEV_SCLP, "mon:stdio");
-        } else {
-            if (default_serial)
-                add_device_config(DEV_SERIAL, "stdio");
-            if (default_virtcon)
-                add_device_config(DEV_VIRTCON, "stdio");
-            if (default_sclp) {
-                add_device_config(DEV_SCLP, "stdio");
+        /* ATLAS ++ */
+        if (!(qemu_opt_get_bool(qemu_get_machine_opts(), "atlas", false ))) {
+            if (default_serial && default_monitor) {
+                add_device_config(DEV_SERIAL, "mon:stdio");
             }
-            if (default_monitor)
-                monitor_parse("stdio", "readline", false);
+        } else {
+		/*ATLAS END*/
+            if (default_parallel)
+                add_device_config(DEV_PARALLEL, "null");
+            if (default_serial && default_monitor) {
+                add_device_config(DEV_SERIAL, "mon:stdio");
+            } else if (default_virtcon && default_monitor) {
+                add_device_config(DEV_VIRTCON, "mon:stdio");
+            } else if (default_sclp && default_monitor) {
+                add_device_config(DEV_SCLP, "mon:stdio");
+            } else {
+                if (default_serial)
+                    add_device_config(DEV_SERIAL, "stdio");
+                if (default_virtcon)
+                    add_device_config(DEV_VIRTCON, "stdio");
+                if (default_sclp) {
+                    add_device_config(DEV_SCLP, "stdio");
+                }
+                if (default_monitor)
+                    monitor_parse("stdio", "readline", false);
+            }
         }
     } else {
         if (default_serial)
@@ -4463,6 +4503,13 @@ int main(int argc, char **argv, char **envp)
 
     parse_numa_opts(machine_class);
 
+/*#ifdef CONFIG_ATLAS*/
+
+    qemu_atlas_init();
+
+/*#endif  CONFIG_ATLAS */
+
+
     if (qemu_opts_foreach(qemu_find_opts("mon"),
                           mon_init_func, NULL, NULL)) {
         exit(1);
@@ -4658,6 +4705,7 @@ int main(int argc, char **argv, char **envp)
 
     os_setup_post();
 
+/*
     main_loop();
     replay_disable_events();
     iothread_stop_all();
@@ -4668,6 +4716,12 @@ int main(int argc, char **argv, char **envp)
 #ifdef CONFIG_TPM
     tpm_cleanup();
 #endif
+*/
+    exec_main_loop(!(qemu_opt_get_bool(qemu_get_machine_opts(), "atlas", false )));
 
     return 0;
+}
+
+int main(int argc, char **argv) {
+    return atlas_main(argc,argv);
 }

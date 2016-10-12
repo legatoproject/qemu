@@ -1,0 +1,6 @@
+# atlas related obj files
+common-obj-y += qemu_smd.o
+common-obj-y += qemu_com.o
+
+atlas-obj-m += cosimu.mo
+cosimu.mo-objs := qemu_std.o qemu_cosimu_std.o

@@ -156,6 +156,8 @@ dummy := $(call unnest-vars,, \
                 qga-vss-dll-obj-y \
                 block-obj-y \
                 block-obj-m \
+                atlas-obj-y \
+				atlas-obj-m \
                 crypto-obj-y \
                 crypto-aes-obj-y \
                 qom-obj-y \

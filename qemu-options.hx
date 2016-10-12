@@ -3962,6 +3962,15 @@ contents of @code{iv.b64} to the second secret
 ETEXI
 
 
+DEF("atlas", 0, QEMU_OPTION_atlas,
+    "-atlas \n",
+     QEMU_ARCH_ALL)
+STEXI
+@item -atlas
+@findex -atlas
+atlas related options.
+ETEXI
+
 HXCOMM This is the last statement. Insert new options before this line!
 STEXI
 @end table

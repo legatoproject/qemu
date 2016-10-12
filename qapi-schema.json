@@ -3361,6 +3361,7 @@
                                        'spiceport' : 'ChardevSpicePort',
                                        'vc'     : 'ChardevVC',
                                        'ringbuf': 'ChardevRingbuf',
+                                       'atlas'  : 'ChardevSocket',
                                        # next one is just for compatibility
                                        'memory' : 'ChardevRingbuf' } }
 

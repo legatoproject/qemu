@@ -32,6 +32,10 @@
 #include "qemu/main-loop.h"
 #include "block/aio.h"
 
+/*ATLAS++*/
+#include "atlas/qemu_cosimu.h"
+/*ATLAS END*/
+
 #ifndef _WIN32
 
 #include "qemu/compatfd.h"
@@ -476,6 +480,28 @@ static int os_host_main_loop_wait(int64_t timeout)
 }
 #endif
 
+/*ATLAS++*/
+
+static int qemu_calculate_timeout(int nonblocking)
+{
+    int timeout = 5000;
+    int64_t timeout_ns = (int64_t)timeout * 1000000LL;
+
+    if (nonblocking)
+    {
+        timeout = 0;
+    }
+    else
+    {
+        timeout_ns = qemu_soonest_timeout(timeout_ns, timerlistgroup_deadline_ns(&main_loop_tlg));
+
+        timeout = (int)((timeout_ns + 999999LL) / 1000000LL);
+    }
+
+    return timeout;
+}
+/*ATLAS END*/
+
 int main_loop_wait(int nonblocking)
 {
     int ret;
@@ -504,6 +530,10 @@ int main_loop_wait(int nonblocking)
                                           &main_loop_tlg));
 
     ret = os_host_main_loop_wait(timeout_ns);
+    /*ATLAS ++*/
+    // NoBlocking wait
+    qemu_cosimu_main_loop_wait(qemu_calculate_timeout(1));
+    /*ATLAS END*/
 #ifdef CONFIG_SLIRP
     slirp_pollfds_poll(gpollfds, (ret < 0));
 #endif

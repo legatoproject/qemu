@@ -88,7 +88,7 @@ DSO_OBJ_CFLAGS := -fPIC -DBUILD_DSO
 module-common.o: CFLAGS += $(DSO_OBJ_CFLAGS)
 %$(DSOSUF): LDFLAGS += $(LDFLAGS_SHARED)
 %$(DSOSUF): %.mo
-	$(call LINK,$^)
+	$(call LINK,$^) -Wl,-soname,$(subst /,-,$@)
 	@# Copy to build root so modules can be loaded when program started without install
 	$(if $(findstring /,$@),$(call quiet-command,cp $@ $(subst /,-,$@), "  CP    $(subst /,-,$@)"))
 

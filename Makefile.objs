@@ -93,6 +93,8 @@ common-obj-y += tcg-runtime.o
 common-obj-y += hw/
 common-obj-y += qom/
 common-obj-y += disas/
+common-obj-y += atlas/
+atlas-obj-m += atlas/
 
 ######################################################################
 # Resource file for Windows executables
