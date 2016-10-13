@@ -3255,6 +3255,19 @@
                                   '*local' : 'SocketAddress' },
   'base': 'ChardevCommon' }
 
+##ATLAS++
+# @ChardevAtlas:
+#
+# Configuration info for Atlas Serial socket chardevs.
+#
+# @addr: Atlas remote address
+#
+##
+{ 'struct': 'ChardevAtlas', 'data': { 'addr' : 'SocketAddress' },
+  'base': 'ChardevCommon' }
+
+#ATLAS END
+
 ##
 # @ChardevMux:
 #
@@ -3361,7 +3374,7 @@
                                        'spiceport' : 'ChardevSpicePort',
                                        'vc'     : 'ChardevVC',
                                        'ringbuf': 'ChardevRingbuf',
-                                       'atlas'  : 'ChardevSocket',
+                                       'atlas'  : 'ChardevAtlas',
                                        # next one is just for compatibility
                                        'memory' : 'ChardevRingbuf' } }
 

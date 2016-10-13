@@ -3546,8 +3546,7 @@ QemuOpts *qemu_chr_parse_compat(const char *label, const char *filename)
         qemu_opt_set(opts, "mux", "on", &error_abort);
         qemu_opt_set(opts, "backend", "atlas", &error_abort);
 
-/*        qemu_opt_set(opts, "ipv4", "on");
-
+/*
         if (sscanf(p, "%64[^:]:%32[^@,]%n", host, port, &pos) < 2) {
             host[0] = 0;
             if (sscanf(p, ":%32[^@,]%n", port, &pos) < 1) {
@@ -3692,7 +3691,7 @@ static void qemu_chr_parse_atlas(QemuOpts *opts, ChardevBackend *backend, Error 
 // const char *port = qemu_opt_get(opts, "port");
    SocketAddress * addr;
 
-   backend->u.atlas.data = g_new0(ChardevSocket, 1);
+   backend->u.atlas.data = g_new0(ChardevAtlas, 1);
 
    addr = g_new0(SocketAddress, 1);
    addr->type = SOCKET_ADDRESS_KIND_INET;
@@ -4616,9 +4615,8 @@ static CharDriverState *qemu_chr_open_atlas(const char *id,
 {
    CharDriverState *chr;
    NetCharDriver *s = NULL;
+   ChardevCommon *common = qapi_ChardevAtlas_base(backend->u.atlas.data);
 
-    ChardevSocket *sock = backend->u.socket.data;
-    ChardevCommon *common = qapi_ChardevSocket_base(sock);
 
     chr = qemu_chr_alloc(common, errp);
     if (!chr) {
