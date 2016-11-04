@@ -927,4 +927,7 @@ int i;
             s->fifo_size[cid] = tmpSize / 2;
         }
     }
+
+    // Export the AT channel value to ATLAS backend.
+    qemu_smd_backend_set_atchannel(SMD_CHANNEL_DATA4);
 }

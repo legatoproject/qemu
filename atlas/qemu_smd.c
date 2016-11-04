@@ -5,6 +5,7 @@ struct qemu_smd
 		smd_open_ptr smd_open;
 		smd_send_ptr smd_send;
 		smd_close_ptr smd_close;
+		smd_set_atchannel_ptr smd_set_atchannel;
 };
 
 static struct qemu_smd smd = {0};
@@ -35,5 +36,12 @@ void qemu_smd_backend_close(int ch)
 {
 	if (smd.smd_close) {
 		smd.smd_close(ch);
+	}
+}
+
+void qemu_smd_backend_set_atchannel(int ch)
+{
+	if (smd.smd_set_atchannel) {
+		smd.smd_set_atchannel(ch);
 	}
 }
