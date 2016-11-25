@@ -1,5 +1,6 @@
 /*
  * MSM HSL UART emulation - msmx9x15
+ * TODO Loop Mode, Fix issue when big command is issued or wery quick (from ATLAS) transmission. Tx & Rx Thresholds not tested
  *
  */
 
@@ -57,6 +58,7 @@ typedef struct MsmHslCtx {
 #define RESET_TX		0x20
 #define START_BREAK		0x50
 #define STOP_BREAK		0x60
+#define RESET_STALE_INT         0x80
 
 #define	UARTDM_MR1_REG	0x0
 #define	UARTDM_MR2_REG  0x4
@@ -119,12 +121,16 @@ typedef struct MsmHslCtx {
 #define UARTDM_ISR_RXHUNT_BMSK		BIT(1)
 #define UARTDM_ISR_TXLEV_BMSK		BIT(0)
 
+
+// Declarations
 void msm_hsl_set_baudrate(MsmHslCtx* s);
 void msm_hsl_update_termio_params(MsmHslCtx* s);
 void msm_hsl_fifo_tx(MsmHslCtx* s,int value);
 void msm_hsl_realize_core(MsmHslCtx *s, Error **errp);
 MsmHslCtx* msm_hsl_init(MemoryRegion *,hwaddr,qemu_irq, int,CharDriverState *);
 
+// msm_hsl_set_baudrate
+// Set Baud Rate
 void msm_hsl_set_baudrate(MsmHslCtx* s)
 {
 uint32_t baud_code = s->csr;
@@ -179,6 +185,8 @@ uint32_t baud_code = s->csr;
     }
 };
 
+// msm_hsl_update_termio_params
+// Update Termio parameters
 void msm_hsl_update_termio_params(MsmHslCtx* s)
 {
 int parity, data_bits, stop_bits, frame_size;
@@ -226,19 +234,21 @@ uint32_t mr2 = s->mr2;
     //fprintf(stderr,"speed=%d parity=%c data=%d stop=%d\n",s->speed, parity, data_bits, stop_bits);
 }
 
+// msm_hsl_uart_update_t_status
+// Update SR & ISR HSL registers and fire Irq
 static void msm_hsl_uart_update_t_status(MsmHslCtx *s)
 {
 uint32_t flags;
 
     if(!s->tx_count)
     {
-	s->sr  |= UARTDM_SR_TXRDY_BMSK;
-    	s->isr |= UARTDM_ISR_TX_READY_BMSK;
+        s->sr  |= UARTDM_SR_TXRDY_BMSK;
+        s->isr |= UARTDM_ISR_TX_READY_BMSK;
     }
     else
     {
-	s->sr &= ~UARTDM_SR_TXEMT_BMSK;
-    	s->isr &= ~UARTDM_ISR_TX_READY_BMSK;
+        s->sr &= ~UARTDM_SR_TXEMT_BMSK;
+        s->isr &= ~UARTDM_ISR_TX_READY_BMSK;
     }
 
     flags = s->imr & s->isr;
@@ -246,6 +256,8 @@ uint32_t flags;
     qemu_set_irq(s->irq,(flags != 0));
 }
 
+// msm_hsl_uart_update_r_status
+// Fire HSL MSM Irq
 static void msm_hsl_uart_update_r_status(MsmHslCtx *s)
 {
 uint32_t flags;
@@ -255,6 +267,8 @@ uint32_t flags;
     qemu_set_irq(s->irq,(flags != 0));
 }
 
+// msm_hsl_read_rx_fifo
+// Read from RX FIFO
 static void msm_hsl_read_rx_fifo(MsmHslCtx *s, uint32_t *c)
 {
 int count = (s->rx_count>4)?4:s->rx_count;
@@ -265,23 +279,23 @@ int i;
         uint32_t rx_rpos = (RX_FIFO_SIZE + s->rx_wpos - s->rx_count) % RX_FIFO_SIZE;
         *c |= (s->rx_fifo[rx_rpos] << (i*8));
         s->rx_count--;
-    	s->sr  |= UARTDM_SR_RXRDY_BMSK;
-    	s->isr |= UARTDM_ISR_RXSTALE_BMSK;
-    	s->misr |= UARTDM_ISR_RXSTALE_BMSK;
+        s->sr  |= UARTDM_SR_RXRDY_BMSK;
+        s->isr |= UARTDM_ISR_RXSTALE_BMSK;
+        s->misr |= UARTDM_ISR_RXSTALE_BMSK;
     }
 
     s->rx_total_snap -= count;
 
     if (s->chr)
     {
-	qemu_chr_accept_input(s->chr);
+	    qemu_chr_accept_input(s->chr);
     }
 
     if(!s->rx_count)
     {
-    	s->isr &= ~UARTDM_ISR_RXSTALE_BMSK;
-    	s->misr &= ~UARTDM_ISR_RXSTALE_BMSK;
-    	s->sr  &= ~UARTDM_SR_RXRDY_BMSK;
+        s->isr &= ~(UARTDM_ISR_RXSTALE_BMSK|UARTDM_ISR_RXLEV_BMSK);
+        s->misr &= ~(UARTDM_ISR_RXSTALE_BMSK|UARTDM_ISR_RXLEV_BMSK);
+        s->sr  &= ~UARTDM_SR_RXRDY_BMSK;
     }
 
     msm_hsl_uart_update_r_status(s);
@@ -301,6 +315,8 @@ MsmHslCtx* s = (MsmHslCtx *)opaque;
     }
 }
 
+// msm_hsl_write_rx_fifo
+// Write to RX FIFO
 static void msm_hsl_write_rx_fifo(void *opaque, const uint8_t *buf, int size)
 {
 MsmHslCtx *s = (MsmHslCtx *)opaque;
@@ -327,13 +343,23 @@ MsmHslCtx *s = (MsmHslCtx *)opaque;
 
     s->rx_total_snap += size;
 
-    s->isr |= UARTDM_ISR_RXSTALE_BMSK;
-    s->misr |= UARTDM_ISR_RXSTALE_BMSK;
+    s->sr  |= UARTDM_SR_RXRDY_BMSK;
 
+    if(s->rx_count < (s->rfwr*4))
+    {
+   	s->isr |= UARTDM_ISR_RXSTALE_BMSK;
+    	s->misr |= UARTDM_ISR_RXSTALE_BMSK;
+    }
+    else if (s->rx_count >= (s->rfwr*4))
+    {
+   	s->isr |= UARTDM_ISR_RXLEV_BMSK;
+    	s->misr |= UARTDM_ISR_RXLEV_BMSK;
+    }
     msm_hsl_uart_update_r_status(s);
 }
 
-
+// msm_hsl_uart_xmit
+// HSL TX handler
 static gboolean msm_hsl_uart_xmit(GIOChannel *chan, GIOCondition cond,void *opaque)
 {
 MsmHslCtx *s = opaque;
@@ -365,6 +391,8 @@ int ret;
     return FALSE;
 }
 
+// msm_hsl_fifo_tx
+// Write into TX FIFO
 void msm_hsl_fifo_tx(MsmHslCtx* s,int value)
 {
 int i;
@@ -386,6 +414,8 @@ char* pchar = (char*)&value;
     msm_hsl_uart_xmit(NULL, G_IO_OUT, s);
 }
 
+// msm_hsl_reset_rx
+// Reset RX
 static void msm_hsl_reset_rx(MsmHslCtx *s)
 {
     s->rx_wpos = 0;
@@ -394,11 +424,15 @@ static void msm_hsl_reset_rx(MsmHslCtx *s)
         qemu_chr_accept_input(s->chr);
 }
 
+// msm_hsl_reset_rx
+// Reset TX
 static void msm_hsl_reset_tx(MsmHslCtx *s)
 {
     s->tx_count = 0;
 }
 
+// msm_hsl_start_break
+// Set Break
 static void msm_hsl_start_break(MsmHslCtx *s)
 {
 int break_enabled = 1;
@@ -407,6 +441,8 @@ int break_enabled = 1;
         qemu_chr_fe_ioctl(s->chr, CHR_IOCTL_SERIAL_SET_BREAK, &break_enabled);
 }
 
+// msm_hsl_update_ctrl
+// Act and Update CR register
 static void msm_hsl_update_ctrl(MsmHslCtx *s)
 {
     if (s->cr & RESET_TX)
@@ -419,7 +455,11 @@ static void msm_hsl_update_ctrl(MsmHslCtx *s)
         msm_hsl_reset_rx(s);
 	s->cr &= ~RESET_RX;
     }
-
+    if (s->cr & RESET_STALE_INT)
+    {
+	s->rx_total_snap = 0;
+	s->cr &= ~RESET_STALE_INT;
+    }
     if ((s->cr & START_BREAK) && !(s->cr & STOP_BREAK))
     {
         msm_hsl_start_break(s);
@@ -433,7 +473,8 @@ static void msm_hsl_update_ctrl(MsmHslCtx *s)
 // UARTDM_ISR_TXLEV_BMSK UARTDM_ISR_TX_READY_BMSK
 // SR: UARTDM_SR_TXEMT_BMSK
 // ISR UARTDM_ISR_TX_READY_BMSK
-
+// msm_hsl_write
+// HSL register base write callback
 static void msm_hsl_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
 MsmHslCtx* s = (MsmHslCtx *)opaque;
@@ -511,6 +552,8 @@ MsmHslCtx* s = (MsmHslCtx *)opaque;
     }
 }
 
+// msm_hsl_read
+// HSL register base read callback
 static uint64_t msm_hsl_read(void *opaque, hwaddr offset, unsigned size)
 {
 MsmHslCtx *s = (MsmHslCtx *)opaque;
@@ -563,6 +606,8 @@ uint32_t ret = 0;
 return ret;
 }
 
+// msm_hsl_can_receive
+// HSL can Receive callback
 static int msm_hsl_can_receive(void *opaque)
 {
 MsmHslCtx *s = (MsmHslCtx *)opaque;
@@ -572,12 +617,16 @@ int ret;
 return ret;
 }
 
+// msm_hsl_can_receive
+// HSL Receive callback
 static void msm_hsl_receive(void *opaque, const uint8_t *buf, int size)
 {
     //fprintf(stderr,"MSM HSL UART :: Data received\n");
     msm_hsl_write_rx_fifo(opaque, buf, size);
 }
 
+// msm_hsl_can_receive
+// HSL Serial events callback
 static void msm_hsl_event(void *opaque, int event)
 {
     //if (event == CHR_EVENT_BREAK)
@@ -639,7 +688,8 @@ static void fifo_timeout_int (void *opaque) {
     }*/
 }
 #endif
-
+// msm_hsl_realize_core
+// HSL reset API
 static void msm_hsl_reset(void *opaque)
 {
 MsmHslCtx *s = (MsmHslCtx *)opaque;
@@ -663,6 +713,8 @@ MsmHslCtx *s = (MsmHslCtx *)opaque;
     msm_hsl_uart_update_t_status(s);
 }
 
+// msm_hsl_realize_core
+// HSL Realize core API
 void msm_hsl_realize_core(MsmHslCtx *s, Error **errp)
 {
     if (!s->chr) {
@@ -678,6 +730,8 @@ void msm_hsl_realize_core(MsmHslCtx *s, Error **errp)
     msm_hsl_reset(s);
 }
 
+// msm_hsl_init
+// HSL Init API
 MsmHslCtx* msm_hsl_init(MemoryRegion *address_space,hwaddr base,qemu_irq irq, int baudbase,CharDriverState *chr)
 {
 MsmHslCtx *s;

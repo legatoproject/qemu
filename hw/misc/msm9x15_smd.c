@@ -1,3 +1,8 @@
+/*
+ * ARM mach-msm SMD-SMEM 9x15 emulation
+ *
+ */
+
 #include "qemu/osdep.h"
 #include "qapi/error.h"
 #include "qemu-common.h"
@@ -441,7 +446,6 @@ static void msm9x15_smd_write(void *opaque, hwaddr addr, uint64_t value, unsigne
                        }
                        else if( smsm->half_ch[i] && (smsm->half_ch[i]->tail != smsm->half_ch[i]->head) ) {
                          if( smsm->half_ch[i]->state == 2 && (smsm->half_ch[i]->fTAIL || smsm->half_ch[i]->fHEAD) ) {
-                           /*struct smd_half_channel *half_ch = &(smsm->half_ch[i][1]);*/
                            if( smsm->half_ch[i]->tail <= smsm->half_ch[i]->head ) {
                              memcpy(&smsm->ptr[i][smsm->off[i]],
                                     &(smsm->fifo_ch[i][smsm->half_ch[i]->tail]),

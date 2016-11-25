@@ -86,10 +86,10 @@
 #include "qemu/sockets.h"
 #include "ui/qemu-spice.h"
 
-/* ATLAS */
-#include "atlas/qemu_cosimu.h"
+/*ATLAS++*/
+#include "atlas/qemu_atlas.h"
 #include "atlas/qemu_com.h"
-/* ATLAS */
+/*ATLAS END*/
 
 #define READ_BUF_LEN 4096
 #define READ_RETRIES 10
@@ -4048,7 +4048,7 @@ int qemu_chr_fe_add_watch(CharDriverState *s, GIOCondition cond,
    bool atlasMode = qemu_opt_get_bool(qemu_get_machine_opts(), "atlas", false );
 
    if (atlasMode) {
-       ret = qemu_cosimu_set_watch_callback(0, cond, (GIOFunc)func, user_data);
+       ret = qemu_atlas_backend->set_watch_cb(0, cond, (GIOFunc)func, user_data);
    } else {
        ret = qemu_chr_fe_add_watch_default(s,cond,func,user_data);
    }
@@ -4261,11 +4261,12 @@ QemuOptsList qemu_chardev_opts = {
             .name = "logappend",
             .type = QEMU_OPT_BOOL,
         },
-        /*ATLAS++*/
-        {
+    /*ATLAS++*/
+	    {
             .name = "atlas",
             .type = QEMU_OPT_STRING,
         },
+    /*ATLAS END*/
         { /* end of list */ }
     },
 };
@@ -4557,13 +4558,12 @@ static CharDriverState *qmp_chardev_open_udp(const char *id,
 }
 
 /*ATLAS++*/
-
 static GSource *qemu_cosimu_chr_add_watch(CharDriverState *chr, GIOCondition cond) {
    return NULL;
 }
 
 static int qemu_cosimu_chr_write(CharDriverState *chr, const uint8_t *buf, int len) {
-   return (qemu_cosimu_uart_data_push(0, buf, len) ? len : 0);
+   return (qemu_atlas_backend->io_push_data(0, buf, len) ? len : 0);
 }
 
 static int qemu_cosimu_chr_read_poll(void *opaque) {
@@ -4598,8 +4598,7 @@ static int qemu_cosimu_chr_read(void *opaque, uint32_t toread) {
 }
 
 static void qemu_cosimu_chr_update_read_handler(CharDriverState *chr) {
-   qemu_cosimu_io_add_watch_poll(0, &qemu_cosimu_chr_read_poll,
-           &qemu_cosimu_chr_read, chr);
+   qemu_atlas_backend->io_add_watch(0, &qemu_cosimu_chr_read_poll, &qemu_cosimu_chr_read, chr);
 }
 
 static void qemu_cosimu_chr_close(CharDriverState *chr) {
@@ -4625,7 +4624,7 @@ static CharDriverState *qemu_chr_open_atlas(const char *id,
 
    s = g_malloc0(sizeof(NetCharDriver));
 
-   s->fd = qemu_cosimu_get_connect_fd(/*atoi(atlas->addr->inet->port)*/0);
+   s->fd = qemu_atlas_backend->get_fd(/*atoi(atlas->addr->inet->port)*/0);
    s->ioc = NULL;
    s->bufcnt = 0;
    s->bufptr = 0;

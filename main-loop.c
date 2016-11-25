@@ -33,7 +33,7 @@
 #include "block/aio.h"
 
 /*ATLAS++*/
-#include "atlas/qemu_cosimu.h"
+#include "atlas/qemu_atlas.h"
 /*ATLAS END*/
 
 #ifndef _WIN32
@@ -530,13 +530,14 @@ int main_loop_wait(int nonblocking)
                                           &main_loop_tlg));
 
     ret = os_host_main_loop_wait(timeout_ns);
-    /*ATLAS ++*/
-    // NoBlocking wait
-    qemu_cosimu_main_loop_wait(qemu_calculate_timeout(1));
-    /*ATLAS END*/
 #ifdef CONFIG_SLIRP
     slirp_pollfds_poll(gpollfds, (ret < 0));
 #endif
+
+    /*ATLAS ++*/
+    // NoBlocking wait
+    qemu_atlas_backend->main_loop_wait_ptr(qemu_calculate_timeout(1));
+    /*ATLAS END*/
 
     /* CPU thread can infinitely wait for event after
        missing the warp */

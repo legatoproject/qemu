@@ -98,7 +98,7 @@ static const MemMapEntry a15memmap[] =
     [vMEM_RAM4] =   { 0x8ee00000, 0x01100000 }, // See device tree swi-mdm9640.dtsi
     [vSMD] =        { 0x0b011000, 0x00000100 }, // See device tree swi-mdm9640.dtsi
     [vSMSM] =       { 0x87e80000, 0x000C0000 }, // See device tree swi-mdm9640.dtsi
-    [vSMEM_SIERRA] ={ 0x8ff00000, 0x00100000 }, // See device tree swi-mdm9640.dtsi
+    [vSMEM_SIERRA] ={ 0x8fC00000, 0x00400000 }, // See device tree swi-mdm9640.dtsi
     [vSMEM_TARG_INFO] = { 0x0193D000, 0x00000008 }, // See device tree swi-mdm9640.dtsi
     [vSMEM_AUX1] =  { 0x00060000, 0x00008000 }, // See device tree swi-mdm9640.dtsi
     [vUART0] =      { 0x078AF000, 0x00001000 }, // See device tree swi-mdm9640.dtsi
@@ -434,6 +434,13 @@ uint32_t size;
     size = b->memmap[vSMSM].size;
     msm9x40_smsm_init(memory, base, pic[irq], size);
 
+#if 0
+    base = b->memmap[vSMEM_SIERRA].base;
+    irq = b->irqmap[vSMEM_SIERRA];
+    size = b->memmap[vSMEM_SIERRA].size;
+    msm9x40_smem_sierra_init(memory, base, pic[irq], size);
+#endif
+
     base = b->memmap[vSMEM_TARG_INFO].base;
     irq = b->irqmap[vSMEM_TARG_INFO];
     size = b->memmap[vSMEM_TARG_INFO].size;
@@ -563,8 +570,6 @@ MemoryRegion *spinlock = g_new(MemoryRegion, 1);
 const char *cpu_model = machine->cpu_model;
 MSM_BoardInfo *b=NULL;
 
-
-
     if (!cpu_model)
     {
         cpu_model = "cortex-a15";   // Let's use cortex-a7. It is compatible with cortex a15 and a9
@@ -635,10 +640,8 @@ MSM_BoardInfo *b=NULL;
     b->bootinfo.board_id = -1; // Because we use a device tree dtb
     b->bootinfo.loader_start = b->memmap[vMEM_NAND].base;
 
-
     arm_load_kernel(ARM_CPU(first_cpu), &b->bootinfo);
 }
-
 
 static void machmsm_machine_init(MachineClass *mc)
 {

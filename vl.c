@@ -121,9 +121,9 @@ int main(int argc, char **argv)
 #include "qapi/qmp/qerror.h"
 #include "sysemu/iothread.h"
 
-// ATLAS
+/*ATLAS++*/
 #include "atlas/qemu_atlas.h"
-// ATLAS END
+/*ATLAS END*/
 
 #define MAX_VIRTIO_CONSOLES 1
 #define MAX_SCLP_CONSOLES 1
@@ -214,6 +214,7 @@ static int default_floppy = 1;
 static int default_cdrom = 1;
 static int default_sdcard = 1;
 static int default_vga = 1;
+static int default_atlas = 0;
 
 static struct {
     const char *driver;
@@ -2978,9 +2979,9 @@ void exec_main_loop (bool wait)
 	}
 }
 
-// ATLAS
+/*ATLAS++*/
 int main_qemu(int argc, char **argv, char **envp)
-// ATLAS END
+/*ATLAS END*/
 {
     int i;
     int snapshot, linux_boot;
@@ -4046,12 +4047,11 @@ int main_qemu(int argc, char **argv, char **envp)
                     exit(1);
                 }
                 break;
-	    /*ATLAS++*/
+         /*ATLAS++*/
             case QEMU_OPTION_atlas:
-                olist = qemu_find_opts("machine");
-                qemu_opts_parse_noisily(olist, "atlas=on", false);
+                default_atlas = 1;
                 break;
-	    /*END ATLAS*/
+        /*END ATLAS*/
             default:
                 os_parse_cmd_args(popt->index, optarg);
             }
@@ -4238,14 +4238,14 @@ int main_qemu(int argc, char **argv, char **envp)
     }
 
     /*ATLAS ++*/
-    if ( qemu_opt_get_bool(qemu_get_machine_opts(), "atlas", false ) ) {
+    if ( default_atlas ) {
     	add_device_config(DEV_SERIAL, "atlas");
     }
     /*END ATLAS */
 
     if (display_type == DT_NOGRAPHIC) {
         /* ATLAS ++ */
-        if (!(qemu_opt_get_bool(qemu_get_machine_opts(), "atlas", false ))) {
+        if ( !default_atlas ) {
             if (default_serial && default_monitor) {
                 add_device_config(DEV_SERIAL, "mon:stdio");
             }
@@ -4253,21 +4253,21 @@ int main_qemu(int argc, char **argv, char **envp)
 		/*ATLAS END*/
             if (default_parallel)
                 add_device_config(DEV_PARALLEL, "null");
-            if (default_serial && default_monitor) {
+            if (default_serial && default_monitor && !default_atlas) {
                 add_device_config(DEV_SERIAL, "mon:stdio");
             } else if (default_virtcon && default_monitor) {
                 add_device_config(DEV_VIRTCON, "mon:stdio");
             } else if (default_sclp && default_monitor) {
                 add_device_config(DEV_SCLP, "mon:stdio");
             } else {
-                if (default_serial)
+                if (default_serial && !default_atlas)
                     add_device_config(DEV_SERIAL, "stdio");
                 if (default_virtcon)
                     add_device_config(DEV_VIRTCON, "stdio");
                 if (default_sclp) {
                     add_device_config(DEV_SCLP, "stdio");
                 }
-                if (default_monitor)
+                if (default_monitor && !default_atlas)
                     monitor_parse("stdio", "readline", false);
             }
         }
@@ -4503,13 +4503,6 @@ int main_qemu(int argc, char **argv, char **envp)
 
     parse_numa_opts(machine_class);
 
-/*#ifdef CONFIG_ATLAS*/
-
-    qemu_atlas_init();
-
-/*#endif  CONFIG_ATLAS */
-
-
     if (qemu_opts_foreach(qemu_find_opts("mon"),
                           mon_init_func, NULL, NULL)) {
         exit(1);
@@ -4705,6 +4698,7 @@ int main_qemu(int argc, char **argv, char **envp)
 
     os_setup_post();
 
+/*ATLAS++*/
 /*
     main_loop();
     replay_disable_events();
@@ -4717,11 +4711,57 @@ int main_qemu(int argc, char **argv, char **envp)
     tpm_cleanup();
 #endif
 */
-    exec_main_loop(!(qemu_opt_get_bool(qemu_get_machine_opts(), "atlas", false )));
+    exec_main_loop(!default_atlas);
+/*ATLAS END*/
 
     return 0;
 }
 
-int main(int argc, char **argv) {
-    return atlas_main(argc,argv);
+/*ATLAS++*/
+#include <dlfcn.h>
+QAtlasBackend* qemu_atlas_backend;
+int main(int argc, char **argv)
+{
+void* h;
+bool defatlas = false;
+char atlas_so_lib[PATH_MAX];
+char* ptr = getenv("QEMU_PATH");
+const char *optarg;
+int optind=1;
+
+    /*Check that QEMU_PATH is variable is set*/
+    if(ptr == NULL)
+    {
+        fprintf(stderr, "QEMU:: Error. Can't get QEMU_PATH environment variable value\n");
+       	exit(1);
+    }
+
+    /* first pass of option parsing: Check if atlas option is set */
+    while (optind < argc) {
+        if (argv[optind][0] != '-') {
+            /* disk image */
+            optind++;
+        } else {
+            const QEMUOption *popt=lookup_opt(argc, argv, &optarg, &optind);
+            switch (popt->index) {
+            case QEMU_OPTION_atlas:
+                defatlas = true;
+                break;
+            }
+        }
+    }
+
+    /* define the atlas shared library to load */
+    if(defatlas) sprintf(atlas_so_lib,"%s/build/atlas-qemu-w-atlas.so",ptr);
+    else sprintf(atlas_so_lib,"%s/build/atlas-qemu-wo-atlas.so",ptr);
+
+    if(!(h = dlopen(atlas_so_lib,RTLD_LAZY)))
+    {
+       fprintf(stderr, "QEMU:: Error. %s\n",dlerror());
+       exit(1);
+    }
+
+    qemu_atlas_backend = (QAtlasBackend*)dlsym(h,"qemuAtlas_backend");
+    return qemu_atlas_backend->main(argc,argv);
 }
+/*ATLAS END*/

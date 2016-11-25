@@ -557,12 +557,8 @@ static void machmsm_init(MachineState *machine)
 MemoryRegion *sysmem = get_system_memory();
 int n;
 MemoryRegion *ram = g_new(MemoryRegion, 1);
-//MemoryRegion *sram = g_new(MemoryRegion, 1);
 const char *cpu_model = machine->cpu_model;
 MSM_BoardInfo *b=NULL;
-//DriveInfo *dinfo;
-//int fd;
-//uint8_t *sramptr;
 
     if (!cpu_model)
     {
@@ -634,31 +630,11 @@ MSM_BoardInfo *b=NULL;
     arm_load_kernel(ARM_CPU(first_cpu), &b->bootinfo);
 }
 
-#if 0
-static QEMUMachine machmsm_a8_machine =
-{
-    .name = "msm9x15",
-    .desc = "MSM ARM Virtual Machine for AR8652",
-    .init = machmsm_init,
-    .max_cpus = 1,
-};
-
-static void machmsm_machine_init(void)
-{
-    qemu_register_machine(&machmsm_a8_machine);
-}
-
-machine_init(machmsm_machine_init);
-#endif
-
-#if 1
 static void machmsm_machine_init(MachineClass *mc)
 {
-    mc->desc = "MSM9x15";
+    mc->desc = "MSM9x15 Virtual Machine";
     mc->init = machmsm_init;
+    mc->max_cpus = 1;
 }
 
-//machine_init(machmsm_machine_init);
 DEFINE_MACHINE("msm9x15", machmsm_machine_init)
-
-#endif

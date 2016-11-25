@@ -1,3 +1,9 @@
+/*
+    -------------------------------------------------------
+	QEMU <-> ATLAS Sockets APIs prototypes de definitions
+    -------------------------------------------------------
+*/
+
 #ifndef QEMU_COM_H
 #define QEMU_COM_H
 

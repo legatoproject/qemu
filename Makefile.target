@@ -139,7 +139,9 @@ obj-y += memory.o cputlb.o
 obj-y += memory_mapping.o
 obj-y += dump.o
 obj-y += migration/ram.o migration/savevm.o
-LIBS := $(libs_softmmu) $(LIBS)
+#ATLAS++
+LIBS := $(libs_softmmu) $(LIBS) -ldl
+#ATLAS END
 
 # xen support
 obj-$(CONFIG_XEN) += xen-common.o
@@ -193,8 +195,8 @@ all-obj-$(CONFIG_SOFTMMU) += $(io-obj-y)
 $(QEMU_PROG_BUILD): config-devices.mak
 
 # build either PROG or PROGW
-$(QEMU_PROG_BUILD): $(all-obj-y) ../libqemuutil.a ../libqemustub.a
-	$(call LINK, $(filter-out %.mak, $^)) ../atlas-cosimu.so
+$(QEMU_PROG_BUILD): $(all-obj-y) $(atlas-obj-m) ../libqemuutil.a ../libqemustub.a
+	$(call LINK, $(filter-out %.mak, $^))
 ifdef CONFIG_DARWIN
 	$(call quiet-command,Rez -append $(SRC_PATH)/pc-bios/qemu.rsrc -o $@,"  REZ   $(TARGET_DIR)$@")
 	$(call quiet-command,SetFile -a C $@,"  SETFILE $(TARGET_DIR)$@")

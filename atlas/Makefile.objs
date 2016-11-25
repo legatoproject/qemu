@@ -2,5 +2,12 @@
 common-obj-y += qemu_smd.o
 common-obj-y += qemu_com.o
 
-atlas-obj-m += cosimu.mo
-cosimu.mo-objs := qemu_std.o qemu_cosimu_std.o
+atlas-obj-m += qemu-wo-atlas.mo
+atlas-obj-m += qemu-w-atlas.mo
+
+qemu-w-atlas.mo-cflags := $(CFLAGS) $(QEMU_CFLAGS) -I$(QEMU_PATH) -I$(QEMU_PATH)/include -I$(QEMU_PATH)/build `pkg-config --cflags glib-2.0` `wx-config --cppflags` -I$(ROOT_SIMU_DIR)/dynlib/fwclockClt/inc -I$(ROOT_SIMU_DIR)/dynlib/fwconfigClt/inc -I$(ROOT_SIMU_DIR)/dynlib/fwmsg/inc -I$(ROOT_SIMU_DIR)/dynlib/fwnet/inc -I$(ROOT_SIMU_DIR)/dynlib/fwuart/inc -I$(ROOT_SIMU_DIR)/dynlib/fwlogger/inc -I$(ROOT_SIMU_DIR)/dynlib/fwtraceClt/inc -I$(ROOT_SIMU_DIR)/tester/inc -I$(ROOT_SIMU_DIR)/dynlib/include -I${ROOT_SIMU_DIR}/aal/main/inc
+qemu-w-atlas.mo-libs := -lAALmain -L${ROOT_SIMU_DIR}/dynlib/libs -L${ROOT_SIMU_DIR}/aal/libs -ltraceclient -ltraceutil -ltracewrapper -lfwmsg -lclockclient -lconfigclient -lconfigwrapper -lconfigcache -llogmessage -llogwrapper -lkernelwrapper -lkernelutils -lkernelclient -lfwnet
+
+#by Default the loaded library should be the standalone one. To be updated
+qemu-wo-atlas.mo-objs := qemu_standalone.o
+qemu-w-atlas.mo-objs := qemu_atlas.o qemu_main.o qemu_capa.o

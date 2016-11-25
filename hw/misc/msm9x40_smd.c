@@ -583,10 +583,10 @@ static void msm9x40_smd_write(void *opaque, hwaddr addr, uint64_t value, unsigne
                            }
 			   else {
 			     if( smsm->off[i] > 20 ) {
-
+                 /* ATLAS++ */
                  qemu_smd_backend_send(i,&smsm->ptr[i][20],smsm->off[i]-20);
-
 				 smsm->off[i] = 0;
+                /* ATLAS END */
 			     }
 			   }
 			 //  else smsm->off[i] = 0;
@@ -788,11 +788,21 @@ static const MemoryRegionOps msm9x40_smem_aux1_ops = {
 /**/
 void msm9x40_smem_aux1_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32_t size)
 {
+char* path = getenv("QEMU_PATH"); // TODO: to be removed. To be set througth QEMU arguments
+char file[1024]={0};
+
+    if(!path)
+    {
+        fprintf(stderr,"QEMU_PATH not defined ... " );
+        exit(0);
+    }
+    sprintf(file,"%s/../ini/smem_aux.bin",path);
+
     msm_smsm *s = (msm_smsm *)g_malloc0( sizeof( msm_smsm ) );
     int fd;
     s->ramptr = (uint8_t*)g_malloc0( size );
     memset( &s->ramptr[0x0], 0xDA, size );
-    if( 0 <= (fd = open( "smem_aux.bin", O_RDONLY )) ) {
+    if( 0 <= (fd = open(file, O_RDONLY )) ) {
         int n;
         printf( "Reading sierra_smem ... " );
         n = read( fd, &s->ramptr[0x0], size );
@@ -826,10 +836,14 @@ static void * smem_get_entry(unsigned id, unsigned * size, struct smem_partition
                     1,
                     1,
                     alloc_hdr);
-
         }
         //fprintf(stderr, "Id %d, alloc_hdr->smem_type %d" id, alloc_hdr->smem_type);
         if (alloc_hdr->smem_type == id) {
+            if (id == 16 + SMEM_SMD_FIFO_BASE_ID )
+            {
+                fprintf( stderr, "Force size to 16384 bytes \n" );
+                alloc_hdr->size = 16384;
+            }
             /* 8 byte alignment to match legacy */
             *size = ALIGN_KERNEL(alloc_hdr->size -
                     alloc_hdr->padding_data, 8);
