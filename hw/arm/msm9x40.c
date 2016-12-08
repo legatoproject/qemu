@@ -446,10 +446,12 @@ uint32_t size;
     size = b->memmap[vSMEM_TARG_INFO].size;
     msm9x40_smem_targ_info_init(memory, base, pic[irq], size);
 
+#if 0
     base = b->memmap[vSMEM_AUX1].base;
     irq = b->irqmap[vSMEM_AUX1];
     size = b->memmap[vSMEM_AUX1].size;
     msm9x40_smem_aux1_init(memory, base, pic[irq], size);
+#endif
  }
 
 /******************************************
