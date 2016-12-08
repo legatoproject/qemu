@@ -839,11 +839,6 @@ static void * smem_get_entry(unsigned id, unsigned * size, struct smem_partition
         }
         //fprintf(stderr, "Id %d, alloc_hdr->smem_type %d" id, alloc_hdr->smem_type);
         if (alloc_hdr->smem_type == id) {
-            if (id == 16 + SMEM_SMD_FIFO_BASE_ID )
-            {
-                fprintf( stderr, "Force size to 16384 bytes \n" );
-                alloc_hdr->size = 16384;
-            }
             /* 8 byte alignment to match legacy */
             *size = ALIGN_KERNEL(alloc_hdr->size -
                     alloc_hdr->padding_data, 8);
