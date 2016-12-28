@@ -1,8 +1,9 @@
 /*
-    -------------------------------------------------------------------------------
-	QEMU standalone. APIs for using QEMU in standalone mode out of ATLAS framework
-    -------------------------------------------------------------------------------
-*/
+ *  QEMU standalone. APIs for using QEMU in standalone mode out of ATLAS framework
+ *
+ *  Copyright (C) Sierra Wireless Inc.
+ *
+ */
 
 #include "atlas/qemu_atlas.h"
 #include "atlas/qemu_smd.h"

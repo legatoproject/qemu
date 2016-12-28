@@ -1,8 +1,9 @@
 /*
-    --------------------------
-	QEMU <-> ATLAS Socket APIs
-    --------------------------
-*/
+ *  QEMU <-> ATLAS Socket APIs
+ *
+ *  Copyright (C) Sierra Wireless Inc.
+ *
+ */
 
 #include <stdio.h>
 #include <sys/types.h>

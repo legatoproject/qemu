@@ -1,8 +1,9 @@
 /*
-    ------------------------------------------
-	QEMU <-> ATLAS capabilities message routing
-    ------------------------------------------
-*/
+ *  QEMU <-> ATLAS capabilities message routing
+ *
+ *  Copyright (C) Sierra Wireless Inc.
+ *
+ */
 
 #include "atlas/qemu_atlas.h"
 #include "atlas/qemu_com.h"

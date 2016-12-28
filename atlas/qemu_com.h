@@ -1,8 +1,9 @@
 /*
-    -------------------------------------------------------
-	QEMU <-> ATLAS Sockets APIs prototypes de definitions
-    -------------------------------------------------------
-*/
+ *  QEMU <-> ATLAS Sockets APIs prototypes de definitions
+ *
+ *  Copyright (C) Sierra Wireless Inc.
+ *
+ */
 
 #ifndef QEMU_COM_H
 #define QEMU_COM_H

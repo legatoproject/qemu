@@ -1,8 +1,9 @@
 /*
-    ------------------------------------------------
-	QEMU <-> ATLAS backend prototypes de definitions
-    ------------------------------------------------
-*/
+ *  QEMU <-> ATLAS backend prototypes de definitions
+ *
+ *  Copyright (C) Sierra Wireless Inc.
+ *
+ */
 
 #ifndef QEMU_ATLAS_H
 #define QEMU_ATLAS_H

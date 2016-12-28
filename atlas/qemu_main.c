@@ -1,8 +1,9 @@
 /*
-    ---------------------------------------------------------------------
-	QEMU <-> ATLAS AAL structure and fucntions pointer + main entry point
-    ---------------------------------------------------------------------
-*/
+ *  QEMU <-> ATLAS AAL structure and functions pointer + main entry point
+ *
+ *  Copyright (C) Sierra Wireless Inc.
+ *
+ */
 
 #include <stdint.h>
 #include <stdbool.h>

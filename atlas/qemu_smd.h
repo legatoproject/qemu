@@ -1,8 +1,9 @@
 /*
-    ---------------------------------------------------
-    QEMU SMD backend wrapper prototypes and definitions
-    ---------------------------------------------------
-*/
+ *  QEMU SMD backend wrapper prototypes and definitions
+ *
+ *  Copyright (C) Sierra Wireless Inc.
+ *
+ */
 
 #ifndef _QEMU_SMD_H_
 #define _QEMU_SMD_H_

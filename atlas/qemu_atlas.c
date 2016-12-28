@@ -1,8 +1,9 @@
 /*
-    --------------------------------
-	QEMU <-> ATLAS Adaptation Layer
-    --------------------------------
-*/
+ *  QEMU <-> ATLAS Adaptation Layer
+ *
+ *  Copyright (C) Sierra Wireless Inc.
+ *
+ */
 
 #include <stdlib.h>
 #include <string.h>

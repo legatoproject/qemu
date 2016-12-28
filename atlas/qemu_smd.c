@@ -1,8 +1,9 @@
 /*
-    -------------------------
-	QEMU SMD backend wrapper
-    -------------------------
-*/
+ *  QEMU SMD backend wrapper
+ *
+ *  Copyright (C) Sierra Wireless Inc.
+ *
+ */
 
 #include "qemu_smd.h"
 

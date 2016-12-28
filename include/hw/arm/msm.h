@@ -1,3 +1,23 @@
+/*
+ *  Qualcomm chipset emulation: msm.h
+ *
+ *  Copyright (C) Sierra Wireless Inc.
+ *
+ *  This program is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published by the
+ *  Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT
+ *  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ *  FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #ifndef MSM_H
 #define MSM_H
 
@@ -13,8 +33,13 @@ void msm9x40_smsm_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32_t si
 void msm9x40_smem_targ_info_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32_t size);
 void msm9x40_smem_aux1_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32_t size);
 
-# define TX_FIFO_SIZE	256
-# define RX_FIFO_SIZE	256
+#define msm9x28_smd_init            msm9x40_smd_init
+#define msm9x28_smsm_init           msm9x40_smsm_init
+#define msm9x28_smem_targ_info_init msm9x40_smem_targ_info_init
+#define msm9x28_smem_aux1_init      msm9x40_smem_aux1_init
+
+#define TX_FIFO_SIZE  256
+#define RX_FIFO_SIZE  256
 
 typedef struct MsmHslCtx {
     MemoryRegion iomem;
