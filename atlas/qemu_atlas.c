@@ -37,6 +37,7 @@
 #include "fwTraceDef.h"
 #include "clkclt.h"
 #include "fwModemDef.h"
+#include "fwSlinkDef.h"
 #include "fwQmiDef.h"
 
 int qemuAtlas_get_connect_fd(int port);
@@ -46,6 +47,12 @@ void qemuAtlas_parse_args(const char * args);
 void qemuAtlas_main_loop_wait(int timeout);
 int64_t qemuAtlas_clock_val(void);
 bool qemuAtlas_uart_data_push(int port, const void* data, int size);
+
+typedef enum
+{
+    eATLAS_DEVICE_SCN=0,
+    eATLAS_DEVICE_STDIO,
+}eATLAS_DEVICE;
 
 QAtlasBackend qemuAtlas_backend =
 {
@@ -90,6 +97,7 @@ struct atlas_config {
    struct sCtx_tty tty[2];
    void* ctx;
    int at_smd_ch;
+   eATLAS_DEVICE   plugged;
 };
 
 static struct atlas_config atlas_configs={0};
@@ -116,6 +124,38 @@ static struct qemu_smd_ch qemu_smd_list[SMD_CHANNELS];
 static int sim_ti;
 
 static uint8_t* qemuAtlas_qmi_serialize(const uint8_t*in, int len, uint32_t* len_out, int ch);
+
+/**/
+/**/
+static uint8_t* qemuAtlas_slink1_serialize(const uint8_t*in, int len, uint32_t* len_out)
+{
+fwMsg msg;
+fwMsg 	*s;
+uint8_t *body;
+
+    msg.header.len 	= len+sizeof(fwMsg_header);
+    msg.header.sender 	= PROCESS_CORE1;
+    msg.header.process	= PROCESS_SCENARIO;
+    msg.header.subProcess = ENTITY_SLINK1;
+    msg.header.msgId 	= E_SLINK_RSP;
+    msg.header.msgType 	= 1;
+    msg.header.Ti 	= 1;
+
+    body = (uint8_t*)malloc(msg.header.len);
+    s = (fwMsg*)(body);
+    s->header.len        = msg.header.len;
+    s->header.sender     = msg.header.sender;
+    s->header.process    = msg.header.process;
+    s->header.subProcess = msg.header.subProcess;
+    s->header.msgId      = msg.header.msgId;
+    s->header.msgType    = msg.header.msgType;
+    s->header.Ti	     = msg.header.Ti;
+
+    memcpy((body)+sizeof(s->header),in,len);
+    *len_out = msg.header.len;
+
+return body;
+}
 
 /**/
 /**/
@@ -253,7 +293,7 @@ static int qemuAtlas_smd_at_send(int ch,uint8_t* buf,int size)
 		int len_out=0;
 		body = qemuAtlas_modem_at_serialize(buf,size,&len_out);
     	qemu_com_socket_send(atlas_configs.fd,body,len_out);
-		free(body);
+        free(body);
 		return size;
     }
     else return -1;
@@ -278,7 +318,7 @@ static int qemuAtlas_smd_qmi_send(int ch,uint8_t* in,int size)
 		// Send to ATLAS Tester
 		body = qemuAtlas_qmi_serialize(in,size,&len_out,ch);
  	   	qemu_com_socket_send(atlas_configs.fd,body,len_out);
-		free(body);
+        free(body);
 		return size;
     }
     else
@@ -389,6 +429,7 @@ fwMsg* msgSend = fwMsgNew();
 	fwMsgDelete(msgSend);
 	free(body);
 }
+
 /**/
 /**/
 static void qemuAtlas_sim_msghdl(fwMsg_header* h)
@@ -412,14 +453,67 @@ uint8_t* cmdId;
     sim_ti = 0;
 }
 
-static void qemuAtlas_slink1_msghdl(fwMsg_header* h)
+/**/
+/**/
+static eATLAS_DEVICE qemuAtlas_slink1_Plugged_device(void)
+{
+    return atlas_configs.plugged;
+}
+
+/**/
+/**/
+static void qemuAtlas_slink1_plug_device(void)
+{
+    atlas_configs.plugged = eATLAS_DEVICE_SCN;
+}
+
+/**/
+/**/
+static void qemuAtlas_slink1_unplug_device(void)
+{
+    atlas_configs.plugged = eATLAS_DEVICE_STDIO;
+}
+
+/**/
+/**/
+static uint32_t qemuAtlas_slink1_msghdl(fwMsg_header* h)
 {
 uint32_t datalen = h->len - sizeof(fwMsg_header);
-uint8_t* data = (uint8_t*)malloc(datalen);
 
-    qemu_com_socket_receive(atlas_configs.fd,datalen,data);
-	if(data) free(data);
-	// TODO : To be implemented
+    switch(h->msgId)
+    {
+    case E_SLINK_CONNECT:
+        if (h->subProcess == ENTITY_SUT_SLINK1)
+        {
+            if(datalen)
+            {
+                uint8_t* data = (uint8_t*)malloc(datalen);
+                qemu_com_socket_receive(atlas_configs.fd,datalen,data);
+                free(data);
+            }
+            qemuAtlas_slink1_plug_device(); // Plug UART to SLINK1 SCN Device
+            datalen = 0;
+        }
+        break;
+    case E_SLINK_DISCONNECT:
+        if (h->subProcess == ENTITY_SUT_SLINK1)
+        {
+            if(datalen)
+            {
+                uint8_t* data = (uint8_t*)malloc(datalen);
+                qemu_com_socket_receive(atlas_configs.fd,datalen,data);
+                free(data);
+            }
+            qemuAtlas_slink1_unplug_device(); // unPlug UART from  SLINK1 SCN Device
+            datalen = 0;
+        }
+        break;
+    case E_SLINK_CMD:
+        break;
+    default: break;
+    }
+
+return datalen;
 }
 
 /**/
@@ -534,6 +628,7 @@ return body;
 void qemuAtlas_init(void)
 {
     memset(&atlas_configs,0,sizeof(struct atlas_config));
+    atlas_configs.plugged = eATLAS_DEVICE_STDIO;
 
     qemu_smd_register(qemuAtlas_smd_open,qemuAtlas_smd_send,qemuAtlas_smd_close,qemuAtlas_smd_set_atchannel);
 
@@ -610,13 +705,18 @@ bool qemuAtlas_uart_data_push(int port, const void* data, int size)
 uint8_t* body=NULL;
 uint32_t len_out=0;
 
-    body = qemuAtlas_stdio_serialize((const uint8_t*)data,size,&len_out);
+    if(qemuAtlas_slink1_Plugged_device() == eATLAS_DEVICE_SCN)
+        body = qemuAtlas_slink1_serialize((const uint8_t*)data,size,&len_out);
+    else
+    {
+        body = qemuAtlas_stdio_serialize((const uint8_t*)data,size,&len_out);
+    }
 
     if(body)
     {
-	qemu_com_socket_send(atlas_configs.fd,body,len_out);
-   	free(body);
-	return true;
+        qemu_com_socket_send(atlas_configs.fd,body,len_out);
+        free(body);
+        return true;
     }
     else return false;
 }
@@ -683,8 +783,8 @@ fwMsg_header h;
     // Check Watch - UART0
     if(atlas_configs.tty[0].w.allocated && (atlas_configs.tty[0].w.flags & G_IO_OUT))
     {
-	atlas_configs.tty[0].w.allocated = 0;
-	atlas_configs.tty[0].w.fct(NULL,atlas_configs.tty[0].w.flags,atlas_configs.tty[0].w.ud);
+	    atlas_configs.tty[0].w.allocated = 0;
+	    atlas_configs.tty[0].w.fct(NULL,atlas_configs.tty[0].w.flags,atlas_configs.tty[0].w.ud);
     }
 
     do
@@ -728,7 +828,7 @@ fwMsg_header h;
 			qemuAtlas_sim_msghdl(&h);
 			break;
 			case ENTITY_SUT_SLINK1:
-			qemuAtlas_slink1_msghdl(&h);
+			atlas_configs.DataToRead = qemuAtlas_slink1_msghdl(&h);
 			break;
 			default:
 			break;
