@@ -29,7 +29,7 @@ char* prod = getenv("PRODUCT_VARIANT");
 
     // Build Capability message
     memset(&sSendData,0,sizeof(fwCoreCaps));
-    sSendData.uartc.identity    = 0x01;
+    sSendData.uartc.identity    = 0x03;
     sSendData.usbc.identity     = 0x00;
     sSendData.gpioc.identity    = 0x00;
     sSendData.simc.identity     = 0x01;
