@@ -108,4 +108,6 @@
 cscope.*
 tags
 TAGS
+/build
+/simu
 *~
