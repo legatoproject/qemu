@@ -185,7 +185,10 @@ bool boot_strict;
 uint8_t *boot_splash_filedata;
 size_t boot_splash_filedata_size;
 uint8_t qemu_extra_params_fw[2];
-
+/*ATLAS++*/
+int scenario_nb = 0;
+int test_case = 0;
+/*ATLAS END*/
 int icount_align_option;
 
 /* The bytes in qemu_uuid[] are in the order specified by RFC4122, _not_ in the
@@ -415,6 +418,33 @@ static QemuOptsList qemu_msg_opts = {
         { /* end of list */ }
     },
 };
+
+/*ATLAS++*/
+static QemuOptsList qemu_sierra_opts = {
+    .name = "sierra",
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_sierra_opts.head),
+    .desc = {
+        {
+            .name = "scn",
+            .type = QEMU_OPT_STRING,
+            .help = "Specify the scenario.\n"
+        }, {
+            .name = "tc",
+            .type = QEMU_OPT_STRING,
+            .help = "Specify the test case.",
+        }, {
+            .name = "standalone",
+            .type = QEMU_OPT_BOOL,
+            .help = "When enabled, do not open the atlas library.",
+        }, {
+            .name = "atlas",
+            .type = QEMU_OPT_BOOL,
+            .help = "open the atlas library.",
+        },
+        { /* End of list */ }
+    },
+};
+/*ATLAS END*/
 
 static QemuOptsList qemu_name_opts = {
     .name = "name",
@@ -3054,6 +3084,10 @@ int main_qemu(int argc, char **argv, char **envp)
     qemu_add_opts(&qemu_icount_opts);
     qemu_add_opts(&qemu_semihosting_config_opts);
     qemu_add_opts(&qemu_fw_cfg_opts);
+/*ATLAS++*/
+    qemu_add_opts(&qemu_sierra_opts);
+/*ATLAS END*/
+
     module_call_init(MODULE_INIT_OPTS);
 
     runstate_init();
@@ -4048,8 +4082,19 @@ int main_qemu(int argc, char **argv, char **envp)
                 }
                 break;
          /*ATLAS++*/
-            case QEMU_OPTION_atlas:
-                default_atlas = 1;
+            case QEMU_OPTION_sierra:
+                if (strstr(optarg, "standalone") == NULL) {
+                    default_atlas = 1;
+                }
+                if ((strstr(optarg, "scn=") != NULL)
+                     && (strstr(optarg, "tc=") != NULL)) {
+                    opts = qemu_opts_parse_noisily(qemu_find_opts("sierra"),
+                            optarg, false);
+                    if (opts) {
+                        scenario_nb = atoi(qemu_opt_get(opts, "scn"));
+                        test_case   = atoi(qemu_opt_get(opts, "tc"));
+                    }
+                }
                 break;
         /*END ATLAS*/
             default:
@@ -4744,8 +4789,10 @@ int optind=1;
         } else {
             const QEMUOption *popt=lookup_opt(argc, argv, &optarg, &optind);
             switch (popt->index) {
-            case QEMU_OPTION_atlas:
-                defatlas = true;
+            case QEMU_OPTION_sierra:
+                if (strstr(optarg, "standalone") == NULL) {
+                    defatlas = true;
+                }
                 break;
             }
         }

@@ -95,6 +95,7 @@ common-obj-y += qom/
 common-obj-y += disas/
 common-obj-y += atlas/
 atlas-obj-m += atlas/
+common-obj-y += simu/
 
 ######################################################################
 # Resource file for Windows executables

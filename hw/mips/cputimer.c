@@ -26,7 +26,7 @@
 #include "qemu/timer.h"
 #include "sysemu/kvm.h"
 
-#define TIMER_PERIOD 10 /* 10 ns period for 100 Mhz frequency */
+#define TIMER_PERIOD 1000 /* 10 ns period for 100 Mhz frequency */
 
 /* XXX: do not use a global */
 uint32_t cpu_mips_get_random (CPUMIPSState *env)

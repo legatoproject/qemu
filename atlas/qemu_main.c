@@ -143,8 +143,8 @@ int count=0;
     qemuAtlas_read_config("CONFIG_QEMU_DEBUG_GDB",NULL,args,&count);
     qemuAtlas_read_config("CONFIG_QEMU_CPU_STOP",NULL,args,&count);
 
-    args[count] = strdup("-atlas");
-	count++;
+    args[count] = strdup("-sierra"); count++;
+    args[count] = strdup("atlas"); count++;
 
     print_command(args,count);
 

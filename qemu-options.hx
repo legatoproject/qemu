@@ -3962,13 +3962,13 @@ contents of @code{iv.b64} to the second secret
 ETEXI
 
 
-DEF("atlas", 0, QEMU_OPTION_atlas,
-    "-atlas \n",
+DEF("sierra", HAS_ARG, QEMU_OPTION_sierra,
+    "-sierra [scn=scn][,tc=tc][,standalone][,atlas]\n",
      QEMU_ARCH_ALL)
 STEXI
-@item -atlas
-@findex -atlas
-atlas related options.
+@item -sierra  @var{scn} @var{tc} @var{standlone} @var{atlas}
+@findex -sierra
+sierra related options. May specify the scenario and test case numbers.
 ETEXI
 
 HXCOMM This is the last statement. Insert new options before this line!
