@@ -30,6 +30,7 @@ void msm9x15_smsm_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32_t si
 
 void msm9x40_smd_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32_t size);
 void msm9x40_smsm_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32_t size);
+void msm9x40_smem_sierra_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32_t size);
 void msm9x40_smem_targ_info_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32_t size);
 void msm9x40_smem_aux1_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32_t size);
 
@@ -37,6 +38,7 @@ void msm9x40_smem_aux1_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32
 #define msm9x28_smsm_init           msm9x40_smsm_init
 #define msm9x28_smem_targ_info_init msm9x40_smem_targ_info_init
 #define msm9x28_smem_aux1_init      msm9x40_smem_aux1_init
+#define msm9x28_smem_sierra_init    msm9x40_smem_sierra_init
 
 #define TX_FIFO_SIZE  256
 #define RX_FIFO_SIZE  256

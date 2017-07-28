@@ -330,6 +330,7 @@ static struct msm9x40_smsm_s *smsm = NULL;
 
 MemoryRegion smem_targ_info_9x40;
 MemoryRegion smem_aux1_9x40;
+MemoryRegion smem_sierra_9x40;
 
 // Channel 14 -> DATA4 -> /dev/smd8
 #define SMD_CHANNEL_DATA4 14
@@ -459,8 +460,9 @@ static uint64_t msm9x40_smd_read(void *opaque, hwaddr addr, unsigned size)
       case 0x18:   ioval = 0x00000708; break;
       case 0x1C:   ioval = 0x00000018; break;
       default:
-                   //fprintf( stderr, "msm9x40_smd_read error ioaddr not supported 0x%x\n", (unsigned int)ioaddr);
-                   ioval = 0x00000000; break;
+        //fprintf( stderr, "msm9x40_smd_read error ioaddr not supported 0x%x\n", (unsigned int)ioaddr);
+        ioval = 0x00000000; 
+        break;
     }
 
     //fprintf( stderr, "msm9x40_smd_read: ioaddr %08X, ioval %08llX", ioaddr, ioval );
@@ -833,6 +835,79 @@ char file[1024]={0};
 
     memory_region_init_io(&smem_aux1_9x40, NULL, &msm9x40_smem_aux1_ops, s, "smem_aux1_9x40", size);
     memory_region_add_subregion(memory, base, &smem_aux1_9x40);
+}
+
+/**/
+/* msm9x40_smem_sierra_read : SMEM SIERRA (SMEM no security, used by RPM) read */
+/**/
+static uint64_t msm9x40_smem_sierra_read(void *opaque, hwaddr addr, unsigned size)
+{
+    msm_smsm *s = (msm_smsm *)opaque;
+    uint64_t ioval = 0;
+    unsigned offset = (unsigned)addr;
+
+    switch( size ) {
+      case 4:    ioval |= ((s->ramptr[offset + 3]) << 24);
+      case 3:    ioval |= ((s->ramptr[offset + 2]) << 16);
+      case 2:    ioval |= ((s->ramptr[offset + 1]) << 8);
+      case 1:    ioval |= (s->ramptr[offset]);
+    }
+    //fprintf( stderr, "SMEM SIERRA read %08X,%04X  %08llX\n", (unsigned)addr, size, (long long unsigned)ioval );
+    return ioval;
+}
+
+/**/
+/* msm9x40_smem_sierra_write : SMEM SIERRA (SMEM no security, used by RPM) write */
+/**/
+static void msm9x40_smem_sierra_write(void *opaque, hwaddr addr, uint64_t value, unsigned size)
+{
+    msm_smsm *s = (msm_smsm *)opaque;
+    unsigned offset = (unsigned)addr;
+    //fprintf( stderr, "SMEM SIERRA write %08X,%04X = %08llX \n", (unsigned)addr, size, (long long unsigned)value );
+    switch( size ) {
+      case 4:    s->ramptr[offset + 3] = ((value >> 24) & 0xFF );
+      case 3:    s->ramptr[offset + 2] = ((value >> 16) & 0xFF );
+      case 2:    s->ramptr[offset + 1] = ((value >> 8) & 0xFF );
+      case 1:    s->ramptr[offset] = ((value) & 0xFF );
+    }
+}
+
+static const MemoryRegionOps msm9x40_smem_sierra_ops = {
+    .read = msm9x40_smem_sierra_read,
+    .write = msm9x40_smem_sierra_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+};
+
+/**/
+/* msm9x40_smem_sierra_init : SMEM SIERRA (SMEM no security, used by RPM) initialization */
+/**/
+void msm9x40_smem_sierra_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32_t size)
+{
+char* path = getenv("QEMU_PATH"); // TODO: to be removed. To be set througth QEMU arguments
+char file[1024]={0};
+
+    if(!path)
+    {
+        fprintf(stderr,"QEMU_PATH not defined ... " );
+        exit(0);
+    }
+    sprintf(file,"%s/../ini/sierra_SMEM.bin",path);
+
+    msm_smsm *s = (msm_smsm *)g_malloc0( sizeof( msm_smsm ) );
+    int fd;
+    s->ramptr = (uint8_t*)g_malloc0( size );
+    memset( &s->ramptr[0x0], 0xDA, size );
+    if( 0 <= (fd = open(file, O_RDONLY )) ) {
+        int n;
+        printf( "Reading sierra_smem ... " );
+        n = read( fd, &s->ramptr[0x0], size );
+        close( fd );
+        if( n < 0 )
+          return;
+    }
+
+    memory_region_init_io(&smem_sierra_9x40, NULL, &msm9x40_smem_sierra_ops, s, "smem_sierra_9x40", size);
+    memory_region_add_subregion(memory, base, &smem_sierra_9x40);
 }
 
 /**/

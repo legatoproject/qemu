@@ -449,12 +449,10 @@ uint32_t size;
     size = b->memmap[vSMSM].size;
     msm9x40_smsm_init(memory, base, pic[irq], size);
 
-#if 0
     base = b->memmap[vSMEM_SIERRA].base;
     irq = b->irqmap[vSMEM_SIERRA];
     size = b->memmap[vSMEM_SIERRA].size;
     msm9x40_smem_sierra_init(memory, base, pic[irq], size);
-#endif
 
     base = b->memmap[vSMEM_TARG_INFO].base;
     irq = b->irqmap[vSMEM_TARG_INFO];
