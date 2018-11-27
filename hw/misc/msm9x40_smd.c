@@ -155,6 +155,9 @@ enum {
     SMEM_WCNSS,
     SMEM_MODEM_Q6_FW,
     SMEM_RPM,
+    SMEM_TZ,
+    SMEM_SPSS,
+    SMEM_HYP,
     NUM_SMEM_SUBSYSTEMS,
 };
 
@@ -174,7 +177,7 @@ enum {
     /* dynamic items */
     SMEM_AARM_PARTITION_TABLE,
     SMEM_AARM_BAD_BLOCK_TABLE,
-    SMEM_RESERVE_BAD_BLOCKS,
+    SMEM_ERR_CRASH_LOG_ADSP,
     SMEM_WM_UUID,
     SMEM_CHANNEL_ALLOC_TBL,
     SMEM_SMD_BASE_ID,
@@ -218,11 +221,11 @@ enum {
     SMEM_HW_SW_BUILD_ID,
     SMEM_SMD_BASE_ID_2,
     SMEM_SMD_FIFO_BASE_ID_2 = SMEM_SMD_BASE_ID_2 +
-                        SMEM_NUM_SMD_STREAM_CHANNELS,
+                                        SMEM_NUM_SMD_STREAM_CHANNELS,
     SMEM_CHANNEL_ALLOC_TBL_2 = SMEM_SMD_FIFO_BASE_ID_2 +
-                        SMEM_NUM_SMD_STREAM_CHANNELS,
+                                        SMEM_NUM_SMD_STREAM_CHANNELS,
     SMEM_I2C_MUTEX = SMEM_CHANNEL_ALLOC_TBL_2 +
-                        SMEM_NUM_SMD_STREAM_CHANNELS,
+                                        SMEM_NUM_SMD_STREAM_CHANNELS,
     SMEM_SCLK_CONVERSION,
     SMEM_SMD_SMSM_INTR_MUX,
     SMEM_SMSM_CPU_INTR_MASK,
@@ -232,7 +235,7 @@ enum {
     SMEM_CLKREGIM_SOURCES,
     SMEM_SMD_FIFO_BASE_ID,
     SMEM_USABLE_RAM_PARTITION_TABLE = SMEM_SMD_FIFO_BASE_ID +
-                        SMEM_NUM_SMD_STREAM_CHANNELS,
+                                        SMEM_NUM_SMD_STREAM_CHANNELS,
     SMEM_POWER_ON_STATUS_INFO,
     SMEM_DAL_AREA,
     SMEM_SMEM_LOG_POWER_IDX,
@@ -276,7 +279,9 @@ enum {
     SMEM_GLINK_NATIVE_XPRT_FIFO_0, /* 479 */
     SMEM_GLINK_NATIVE_XPRT_FIFO_1, /* 480 */
     SMEM_SMP2P_SENSOR_BASE, /* 481 */
-    SMEM_NUM_ITEMS = SMEM_SMP2P_SENSOR_BASE + 8, /* 489 */
+    SMEM_SMP2P_TZ_BASE = SMEM_SMP2P_SENSOR_BASE + 8, /* 489 */
+    SMEM_IPA_FILTER_TABLE = SMEM_SMP2P_TZ_BASE + 8, /* 497 */
+    SMEM_NUM_ITEMS, /* 498 */
 };
 
 
@@ -333,7 +338,7 @@ MemoryRegion smem_aux1_9x40;
 MemoryRegion smem_sierra_9x40;
 
 // Channel 14 -> DATA4 -> /dev/smd8
-#define SMD_CHANNEL_DATA4 14
+#define SMD_CHANNEL_DATA4 13
 static char bufat[2000];
 static int bufatoff = 0;
 
@@ -461,7 +466,7 @@ static uint64_t msm9x40_smd_read(void *opaque, hwaddr addr, unsigned size)
       case 0x1C:   ioval = 0x00000018; break;
       default:
         //fprintf( stderr, "msm9x40_smd_read error ioaddr not supported 0x%x\n", (unsigned int)ioaddr);
-        ioval = 0x00000000; 
+        ioval = 0x00000000;
         break;
     }
 
@@ -810,27 +815,28 @@ static const MemoryRegionOps msm9x40_smem_aux1_ops = {
 /**/
 void msm9x40_smem_aux1_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32_t size)
 {
-char* path = getenv("QEMU_PATH"); // TODO: to be removed. To be set througth QEMU arguments
-char file[1024]={0};
+    const char * aux1_filename = option_rom[2].name;
 
-    if(!path)
-    {
-        fprintf(stderr,"QEMU_PATH not defined ... " );
-        exit(0);
+    if(!aux1_filename) {
+        fprintf(stderr, "WARNING: -option-rom not specified for AUX1 file. \n"
+                        "Setting for AUX1 will be ignored.\n");
+        return;
     }
-    sprintf(file,"%s/../ini/smem_aux.bin",path);
 
     msm_smsm *s = (msm_smsm *)g_malloc0( sizeof( msm_smsm ) );
     int fd;
     s->ramptr = (uint8_t*)g_malloc0( size );
     memset( &s->ramptr[0x0], 0xDA, size );
-    if( 0 <= (fd = open(file, O_RDONLY )) ) {
+    if( 0 <= (fd = open(aux1_filename, O_RDONLY )) ) {
         int n;
-        printf( "Reading sierra_smem ... " );
+        printf( "Reading '%s'... ", aux1_filename );
         n = read( fd, &s->ramptr[0x0], size );
         close( fd );
-        if( n < 0 )
+        if( n < 0 ) {
+          printf( "ERROR: Settings will be ignored\n" );
           return;
+        } else
+          printf( "Done.\n");
     }
 
     memory_region_init_io(&smem_aux1_9x40, NULL, &msm9x40_smem_aux1_ops, s, "smem_aux1_9x40", size);
@@ -883,27 +889,35 @@ static const MemoryRegionOps msm9x40_smem_sierra_ops = {
 /**/
 void msm9x40_smem_sierra_init(MemoryRegion *memory,hwaddr base,qemu_irq irq,uint32_t size)
 {
-char* path = getenv("QEMU_PATH"); // TODO: to be removed. To be set througth QEMU arguments
-char file[1024]={0};
+    const char * smem_filename = option_rom[1].name;
 
-    if(!path)
+    if(!smem_filename)
     {
-        fprintf(stderr,"QEMU_PATH not defined ... " );
+        fprintf(stderr, "-option-rom not specified for SMEM file. \n"
+                        "Expected syntax:\n"
+                        "\t-option-rom <SMSM-filename>"
+                        " -option-rom <SMEM-filename>\n");
         exit(0);
     }
-    sprintf(file,"%s/../ini/sierra_SMEM.bin",path);
 
     msm_smsm *s = (msm_smsm *)g_malloc0( sizeof( msm_smsm ) );
     int fd;
     s->ramptr = (uint8_t*)g_malloc0( size );
     memset( &s->ramptr[0x0], 0xDA, size );
-    if( 0 <= (fd = open(file, O_RDONLY )) ) {
+    if( 0 <= (fd = open(smem_filename, O_RDONLY )) ) {
         int n;
-        printf( "Reading sierra_smem ... " );
+        printf( "Reading '%s'... ", smem_filename );
         n = read( fd, &s->ramptr[0x0], size );
         close( fd );
-        if( n < 0 )
-          return;
+        if( n < 0 ) {
+          printf("ERROR.\n");
+          exit(-1);
+        } else
+          printf("Done.\n");
+    }
+    else {
+        printf( "File '%s' not found.\n", smem_filename );
+        exit(-1);
     }
 
     memory_region_init_io(&smem_sierra_9x40, NULL, &msm9x40_smem_sierra_ops, s, "smem_sierra_9x40", size);
@@ -959,7 +973,10 @@ int i;
 	const char * smd_filename = option_rom[0].name;
     if(!smd_filename)
     {
-        fprintf(stderr,"You did not specified '-option-rom <path>' option." );
+        fprintf(stderr, "-option-rom not specified for SMSM file. \n"
+                        "Expected syntax:\n"
+                        "\t-option-rom <SMSM-filename>"
+                        " -option-rom <SMEM-filename>\n");
         exit(0);
     }
 
@@ -972,7 +989,7 @@ int i;
 
     if( 0 <= (fd = open( smd_filename, O_RDONLY )) ) {
 
-        fprintf(stderr,"Reading sierra_smem ... " );
+        fprintf(stderr,"Reading %s... ", smd_filename );
         int nb = read( fd, &s->ramptr[0x0], size );
         fprintf(stderr,"%d read \n",nb );
         close( fd );

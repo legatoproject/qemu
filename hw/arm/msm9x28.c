@@ -111,12 +111,11 @@ static const MemMapEntry a15memmap[] =
     [vMEM_RAM3] =   { 0x88000000, 0x06c00000 }, // See device tree swi-mdm9640.dtsi
     [vMEM_RAM4] =   { 0x8ee00000, 0x01100000 }, // See device tree swi-mdm9640.dtsi
     [vSMD] =        { 0x0b011000, 0x00000100 }, // See device tree swi-mdm9640.dtsi
-    [vSMSM] =       { 0x87e80000, 0x000C0000 }, // See device tree swi-mdm9640.dtsi
-    [vSMEM_SIERRA] ={ 0x8fF00000, 0x00400000 }, // See device tree swi-mdm9640.dtsi
+    [vSMSM] =       { 0x87d00000, 0x00100000 }, // See device tree swi-mdm9640.dtsi
+    [vSMEM_SIERRA] ={ 0x8fF00000, 0x00100000 }, // See device tree swi-mdm9640.dtsi
     [vSMEM_TARG_INFO] = { 0x0193D000, 0x00000008 }, // See device tree swi-mdm9640.dtsi
     [vSMEM_AUX1] =  { 0x00060000, 0x00008000 }, // See device tree swi-mdm9640.dtsi
     [vUART0] =      { 0x078AF000, 0x00001000 }, // See device tree swi-mdm9640.dtsi
-    //[vUART1] =      { 0x078B0000, 0x00001000 }, // See device tree swi-mdm9640.dtsi
     [vUART1] =      { 0x078B3000, 0x00001000 }, // See device tree swi-mdm9640.dtsi
     [vTIMER] =      { 0x0b020000, 0x3000     },
     [vTLMM]     =   { 0x00800000, 0x00100000 },
@@ -127,9 +126,8 @@ static const MemMapEntry a15memmap[] =
 
 static const int a15irqmap[] =
 {
-    [vUART0]    = 107, // See device tree (swi-mdm9640.dtsi)
-    //[vUART1]    = 1, // swi-mdm9640.dtsi
-    [vUART1]    = 121, // swi-mdm9640.dtsi
+    [vUART0]    = 107, // mdm9607-swi-ar.dtsi
+    [vUART1]    = 121, // mdm9607-swi-ar.dtsi
     [vTIMER] = 6,
     [vSMD]      = 25,
     [vSMSM]     = 26,
@@ -394,9 +392,8 @@ static void msm9x28_timer_tick(void *opaque)
 {
 msm9x28_timer_s *timer = (msm9x28_timer_s *) opaque;
 
-    //fprintf(stderr, "msm9x28_timer_tick\n");
-    //timer->time = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
-    //timer->val += 300;
+    timer->time = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+    timer->val += 300;
 
     timer->reset_val=0;
     msm9x28_timer_interrupt(timer);
@@ -452,12 +449,10 @@ uint32_t size;
     size = b->memmap[vSMSM].size;
     msm9x28_smsm_init(memory, base, pic[irq], size);
 
-#if 0
     base = b->memmap[vSMEM_SIERRA].base;
     irq = b->irqmap[vSMEM_SIERRA];
     size = b->memmap[vSMEM_SIERRA].size;
     msm9x28_smem_sierra_init(memory, base, pic[irq], size);
-#endif
 
     base = b->memmap[vSMEM_TARG_INFO].base;
     irq = b->irqmap[vSMEM_TARG_INFO];
