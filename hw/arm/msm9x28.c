@@ -533,17 +533,21 @@ DeviceState *cpudev = DEVICE(qemu_get_cpu(0));
 
 static void msm9x28_uart_init(const MSM_BoardInfo *b,MemoryRegion *memory, qemu_irq *pic_9x28)
 {
-	// console UART is a HS uart
-	hwaddr base = b->memmap[vUART1].base;
-    int irq = b->irqmap[vUART1];
+    // Define two UARTs and use qemu -serial option to assign console:
+    //     WP76 has console on UART0
+    //     AR758 has console on UART1
+    hwaddr base;
+    int irq;
 
+    // UART0
+    base = b->memmap[vUART0].base;
+    irq = b->irqmap[vUART0];
     msm_hs_init(memory, base, pic_9x28[irq], 115200, serial_hds[0]);
 
-	// Early debug use UART0 (HSL lite driver).
-	//base = b->memmap[vUART0].base;
-    //irq = b->irqmap[vUART0];
-
-    //msm_hsl_init(memory, base, pic_9x28[irq], 115200, serial_hds[0]);
+    // UART1
+    base = b->memmap[vUART1].base;
+    irq = b->irqmap[vUART1];
+    msm_hs_init(memory, base, pic_9x28[irq], 115200, serial_hds[1]);
 }
 
 /******************************************
