@@ -4799,8 +4799,15 @@ int optind=1;
     }
 
     /* define the atlas shared library to load */
-    if(defatlas) sprintf(atlas_so_lib,"%s/build/atlas-qemu-w-atlas.so",ptr);
-    else sprintf(atlas_so_lib,"%s/build/atlas-qemu-wo-atlas.so",ptr);
+    if(defatlas) {
+        sprintf(atlas_so_lib, "%s/build/atlas-qemu-w-atlas.so", ptr);
+    }
+    else {
+        sprintf(atlas_so_lib, "%s/lib/qemu/atlas-qemu-wo-atlas.so", ptr);
+        if(access(atlas_so_lib, F_OK) == -1) {
+            sprintf(atlas_so_lib, "%s/build/atlas-qemu-wo-atlas.so", ptr);
+        }
+    }
 
     if(!(h = dlopen(atlas_so_lib,RTLD_LAZY)))
     {

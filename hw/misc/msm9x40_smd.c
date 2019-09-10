@@ -954,7 +954,7 @@ static void * smem_get_entry(unsigned id, unsigned * size, struct smem_partition
             item = (void *)(alloc_hdr) +
                 sizeof(*alloc_hdr) +
                 alloc_hdr->padding_hdr;
-            fprintf( stderr, "Found for id %d, size %lld, add 0x%llx ", id, (unsigned long long) size, (unsigned long long)item );
+            fprintf( stderr, "Found for id %d, size %lld, add 0x%llx\n", id, (unsigned long long) size, (unsigned long long)item );
         }
     }
     return item;
@@ -1031,7 +1031,7 @@ int i;
         item = smem_get_entry(id, &tmpSize, hdr);
         if (item != NULL)
         {
-            fprintf( stderr, "Found for id %d, size %d, add 0x%llx ", id, tmpSize, (unsigned long long)item );
+            fprintf( stderr, "Found for id %d, size %d, add 0x%llx\n", id, tmpSize, (unsigned long long)item );
             int cid = id - SMEM_SMD_BASE_ID;
             s->half_ch[cid] = item;
             s->half_ch[cid]->state = 0;
@@ -1042,7 +1042,7 @@ int i;
         item = smem_get_entry(id, &tmpSize, hdr);
         if (item != NULL)
         {
-            fprintf( stderr, "Found for id %d, size %d, add 0x%llx ", id, tmpSize, (unsigned long long)item );
+            fprintf( stderr, "Found for id %d, size %d, add 0x%llx\n", id, tmpSize, (unsigned long long)item );
             int cid = id - SMEM_SMD_FIFO_BASE_ID;
             s->fifo_ch[cid] = item;
             s->fifo_size[cid] = tmpSize / 2;
